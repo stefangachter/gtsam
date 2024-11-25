@@ -39,6 +39,9 @@
 	#cmakedefine GTSAM_ROT3_EXPMAP
 #endif
 
+// Whether GTSAM is compiled to use ExtendedPose3::Retract as the default for NavState
+#cmakedefine GTSAM_EXTENDED_POSE_RETRACT
+
 // Whether we are using TBB (if TBB was found and GTSAM_WITH_TBB is enabled in CMake)
 #cmakedefine GTSAM_USE_TBB
 
@@ -75,8 +78,11 @@
 // Support Metis-based nested dissection
 #cmakedefine GTSAM_SUPPORT_NESTED_DISSECTION
 
-// Support Metis-based nested dissection
+// Whether to use IMU pre-integration on tangent space
 #cmakedefine GTSAM_TANGENT_PREINTEGRATION
+
+// Whether to use IMU pre-integration based on Lie groups
+#cmakedefine GTSAM_LIEGROUP_PREINTEGRATION
 
 // Whether to use the system installed Metis instead of the provided one
 #cmakedefine GTSAM_USE_SYSTEM_METIS
