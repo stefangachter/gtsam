@@ -31,6 +31,7 @@ option(GTSAM_FORCE_STATIC_LIB               "Force gtsam to be a static library,
 option(GTSAM_USE_QUATERNIONS                "Enable/Disable using an internal Quaternion representation for rotations instead of rotation matrices. If enable, Rot3::EXPMAP is enforced by default." OFF)
 option(GTSAM_POSE3_EXPMAP                   "Enable/Disable using Pose3::EXPMAP as the default mode. If disabled, Pose3::FIRST_ORDER will be used." ON)
 option(GTSAM_ROT3_EXPMAP                    "Ignore if GTSAM_USE_QUATERNIONS is OFF (Rot3::EXPMAP by default). Otherwise, enable Rot3::EXPMAP, or if disabled, use Rot3::CAYLEY." ON)
+option(GTSAM_EXTENDED_POSE_RETRACT          "Enable/Disable using ExtendedPose3::Retract as the default for NavState" OFF)
 option(GTSAM_DT_MERGING                     "Enable/Disable merging of equal leaf nodes in DecisionTrees. This leads to significant speed up and memory savings." ON)
 option(GTSAM_ENABLE_CONSISTENCY_CHECKS      "Enable/Disable expensive consistency checks" OFF)
 option(GTSAM_ENABLE_MEMORY_SANITIZER        "Enable/Disable memory sanitizer" OFF)
@@ -43,6 +44,7 @@ option(GTSAM_INSTALL_MATLAB_TOOLBOX         "Enable/Disable installation of matl
 option(GTSAM_ALLOW_DEPRECATED_SINCE_V43     "Allow use of methods/functions deprecated in GTSAM 4.3" ON)
 option(GTSAM_SUPPORT_NESTED_DISSECTION      "Support Metis-based nested dissection" ON)
 option(GTSAM_TANGENT_PREINTEGRATION         "Use new ImuFactor with integration on tangent space" ON)
+option(GTSAM_LIEGROUP_PREINTEGRATION        "Use IMU pre-integration based on Lie groups" OFF)
 option(GTSAM_SLOW_BUT_CORRECT_BETWEENFACTOR "Use the slower but correct version of BetweenFactor" OFF)
 option(GTSAM_SLOW_BUT_CORRECT_EXPMAP        "Use slower but correct expmap for Pose2"  OFF)
 
