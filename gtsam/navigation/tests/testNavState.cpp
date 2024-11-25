@@ -41,7 +41,7 @@ TEST(NavState, Constructor) {
   std::function<NavState(const Rot3&, const Point3&, const Vector3&)> create =
       std::bind(&NavState::Create, std::placeholders::_1, std::placeholders::_2,
                 std::placeholders::_3, nullptr, nullptr, nullptr);
-  Matrix aH1, aH2, aH3;
+  Matrix93 aH1, aH2, aH3;
   EXPECT(
       assert_equal(kState1,
           NavState::Create(kAttitude, kPosition, kVelocity, aH1, aH2, aH3)));
@@ -53,7 +53,7 @@ TEST(NavState, Constructor) {
           numericalDerivative32(create, kAttitude, kPosition, kVelocity), aH2));
   EXPECT(
       assert_equal(
-          numericalDerivative32(create, kAttitude, kPosition, kVelocity), aH2));
+          numericalDerivative33(create, kAttitude, kPosition, kVelocity), aH3));
 }
 
 /* ************************************************************************* */
@@ -200,10 +200,10 @@ TEST(NavState, Coriolis2) {
 }
 
 TEST(NavState, Coriolis3) {
-  /** Consider a massless planet with an attached nav frame at 
-   *  n_omega = [0 0 1]', and a body at position n_t = [1 0 0]', travelling with 
+  /** Consider a massless planet with an attached nav frame at
+   *  n_omega = [0 0 1]', and a body at position n_t = [1 0 0]', travelling with
    *  velocity n_v = [0 1 0]'. Orient the body so that it is not instantaneously
-   *  aligned with the nav frame (i.e., nRb != I_3x3). Test that first and 
+   *  aligned with the nav frame (i.e., nRb != I_3x3). Test that first and
    *  second order Coriolis corrections are as expected.
    */
 
@@ -216,9 +216,9 @@ TEST(NavState, Coriolis3) {
        bRn = nRb.inverse();
 
   // Get expected first and second order corrections in the nav frame
-  Vector3 n_dP1e = 0.5 * dt2 * n_aCorr1, 
+  Vector3 n_dP1e = 0.5 * dt2 * n_aCorr1,
           n_dP2e = 0.5 * dt2 * (n_aCorr1 + n_aCorr2),
-          n_dV1e = dt * n_aCorr1, 
+          n_dV1e = dt * n_aCorr1,
           n_dV2e = dt * (n_aCorr1 + n_aCorr2);
 
   // Get expected first and second order corrections in the body frame

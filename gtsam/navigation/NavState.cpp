@@ -104,6 +104,16 @@ bool NavState::equals(const NavState& other, double tol) const {
 }
 
 //------------------------------------------------------------------------------
+#ifdef GTSAM_EXTENDED_POSE_RETRACT
+NavState NavState::retract(const Vector9& xi, //
+    OptionalJacobian<9, 9> H1, OptionalJacobian<9, 9> H2) const {
+  TIE(nRb, n_t, n_v, *this);
+  ExtendedPose3 T(nRb, n_t, n_v); // flip velocity and position
+  T = T.retract(xi, H1, H2);
+  return NavState(T.rotation(), T.velocity(), T.position());
+}
+#else
+//------------------------------------------------------------------------------
 NavState NavState::retract(const Vector9& xi, //
     OptionalJacobian<9, 9> H1, OptionalJacobian<9, 9> H2) const {
   Rot3 nRb = R_;
@@ -129,27 +139,20 @@ NavState NavState::retract(const Vector9& xi, //
   }
   return NavState(nRc, t, v);
 }
+#endif
 
 //------------------------------------------------------------------------------
 Vector9 NavState::localCoordinates(const NavState& g, //
     OptionalJacobian<9, 9> H1, OptionalJacobian<9, 9> H2) const {
-  Matrix3 D_dR_R, D_dt_R, D_dv_R;
-  const Rot3 dR = R_.between(g.R_, H1 ? &D_dR_R : 0);
-  const Point3 dP = R_.unrotate(g.t_ - t_, H1 ? &D_dt_R : 0);
-  const Vector dV = R_.unrotate(g.v_ - v_, H1 ? &D_dv_R : 0);
-
-  Vector9 xi;
-  Matrix3 D_xi_R;
-  xi << Rot3::Logmap(dR, (H1 || H2) ? &D_xi_R : 0), dP, dV;
-  if (H1) {
-    *H1 << D_xi_R * D_dR_R, Z_3x3, Z_3x3, //
-    D_dt_R, -I_3x3, Z_3x3, //
-    D_dv_R, Z_3x3, -I_3x3;
-  }
+      const ExtendedPose3 T0(R_, t_, v_);
+      const ExtendedPose3 T(g.R_, g.t_, g.v_);
+      const ExtendedPose3 DeltaT(T0.inverse()*T);
+      const Vector9 xi = T.Logmap(DeltaT, H1);
   if (H2) {
-    *H2 << D_xi_R, Z_3x3, Z_3x3, //
-    Z_3x3, dR.matrix(), Z_3x3, //
-    Z_3x3, Z_3x3, dR.matrix();
+    *H2 = *H1;
+  }
+  if (H1) {
+    *H1 = -DeltaT.AdjointMap() * (*H1);
   }
   return xi;
 }
