@@ -18,6 +18,7 @@
 
 #pragma once
 
+#include <gtsam/geometry/ExtendedPose3.h>
 #include <gtsam/geometry/Pose3.h>
 #include <gtsam/base/Vector.h>
 #include <gtsam/base/Manifold.h>
