@@ -117,23 +117,43 @@ NavState PreintegrationBase::predict(const NavState& state_i,
     OptionalJacobian<9, 6> H2) const {
   Matrix96 D_biasCorrected_bias;
   Vector9 biasCorrected = biasCorrectedDelta(bias_i,
-                                             H2 ? &D_biasCorrected_bias : nullptr);
+      H2 ? &D_biasCorrected_bias : nullptr);
+
+  // Correct for Earth rate
+  NavState state_ii = state_i;
+  if (p().omegaCoriolis){
+    const Vector3 omega = *(p().omegaCoriolis);
+    const Rot3 Gamma_R = Rot3::Expmap(-omega*deltaTij_);
+
+    state_ii = NavState(Gamma_R * state_i.attitude(),
+                        Gamma_R * state_i.position(),
+                        Gamma_R * state_i.velocity());
+    // Jacobian is identity
+  }
 
   // Correct for initial velocity and gravity
   Matrix9 D_delta_state, D_delta_biasCorrected;
-  Vector9 xi = state_i.correctPIM(biasCorrected, deltaTij_, p().n_gravity,
-                                  p().omegaCoriolis, p().use2ndOrderCoriolis, H1 ? &D_delta_state : nullptr,
-                                  H2 ? &D_delta_biasCorrected : nullptr);
+  Vector9 xi = state_ii.correctPIM(biasCorrected, deltaTij_, p().n_gravity,
+      p().omegaCoriolis, p().use2ndOrderCoriolis, H1 ? &D_delta_state : nullptr,
+      H2 ? &D_delta_biasCorrected : nullptr);
 
   // Use retract to get back to NavState manifold
   Matrix9 D_predict_state, D_predict_delta;
-  NavState state_j = state_i.retract(xi,
-                                     H1 ? &D_predict_state : nullptr,
-                                     H1 || H2 ? &D_predict_delta : nullptr);
+  NavState state_j = state_ii.retract(xi, D_predict_state, D_predict_delta);
+
+  Matrix99 H = Matrix99::Identity(9, 9);
+  if (p().omegaCoriolis){
+    // apply v_t = v'_t - Omega p_t
+    const Rot3 nRb = state_j.attitude();
+    const Matrix3 Omega = skewSymmetric(*(p().omegaCoriolis));
+    state_j = NavState(nRb, state_j.position(),
+                      state_j.velocity() - Omega * state_j.position());
+                                     H2 || H2 ? &D_predict_delta : nullptr);
+  }
   if (H1)
-    *H1 = D_predict_state + D_predict_delta * D_delta_state;
+    *H1 = H * (D_predict_state + D_predict_delta * D_delta_state);
   if (H2)
-    *H2 = D_predict_delta * D_delta_biasCorrected * D_biasCorrected_bias;
+    *H2 = H * (D_predict_delta * D_delta_biasCorrected * D_biasCorrected_bias);
   return state_j;
 }
 

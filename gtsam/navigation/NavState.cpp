@@ -221,37 +221,32 @@ Vector9 NavState::coriolis(double dt, const Vector3& omega, bool secondOrder,
   const double dt2 = dt * dt;
   const Vector3 omega_cross_vel = omega.cross(n_v);
 
-  // Get perturbations in nav frame
-  Vector9 n_xi, xi;
-  Matrix3 D_dR_R, D_dP_R, D_dV_R, D_body_nav;
-  dR(n_xi) << ((-dt) * omega);
-  dP(n_xi) << ((-dt2) * omega_cross_vel); // NOTE(luca): we got rid of the 2 wrt INS paper
-  dV(n_xi) << ((-2.0 * dt) * omega_cross_vel);
+  Vector9 xi;
+  Matrix3 D_dP_R, D_dP_dR, D_dV_dR;
+  dR(xi) << nRb.unrotate((-dt) * omega, H ? &D_dP_R : 0);
+  dP(xi) << nRb.unrotate((-dt2) * omega_cross_vel, H ? &D_dP_dR : 0);
+  dV(xi) << nRb.unrotate((-2.0 * dt) * omega_cross_vel, H ? &D_dV_dR : 0);
+
   if (secondOrder) {
     const Vector3 omega_cross2_t = omega.cross(omega.cross(n_t));
-    dP(n_xi) -= (0.5 * dt2) * omega_cross2_t;
-    dV(n_xi) -= dt * omega_cross2_t;
+    dP(xi) -= (0.5 * dt2) * omega_cross2_t;
+    dV(xi) -= dt * omega_cross2_t;
   }
-
-  // Transform n_xi into the body frame
-  xi << nRb.unrotate(dR(n_xi), H ? &D_dR_R : 0, H ? &D_body_nav : 0), 
-        nRb.unrotate(dP(n_xi), H ? &D_dP_R : 0),
-        nRb.unrotate(dV(n_xi), H ? &D_dV_R : 0);
-
   if (H) {
     H->setZero();
     const Matrix3 Omega = skewSymmetric(omega);
     const Matrix3 D_cross_state = Omega * R();
     H->setZero();
-    D_R_R(H) << D_dR_R;
-    D_t_v(H) << D_body_nav * (-dt2) * D_cross_state;
-    D_t_R(H) << D_dP_R;
-    D_v_v(H) << D_body_nav * (-2.0 * dt) * D_cross_state;
-    D_v_R(H) << D_dV_R;
+    D_R_R(H) << D_dP_R;
+    D_t_v(H) << nRb.transpose() * (-dt2) * D_cross_state;
+    D_v_v(H) << nRb.transpose() * (-2.0 * dt) * D_cross_state;
+    D_t_R(H) << D_dP_dR;
+    D_v_R(H) << D_dV_dR;
+
     if (secondOrder) {
       const Matrix3 D_cross2_state = Omega * D_cross_state;
-      D_t_t(H) -= D_body_nav * (0.5 * dt2) * D_cross2_state;
-      D_v_t(H) -= D_body_nav * dt * D_cross2_state;
+      D_t_t(H) -= (0.5 * dt2) * D_cross2_state;
+      D_v_t(H) -= dt * D_cross2_state;
     }
   }
   return xi;
@@ -264,29 +259,58 @@ Vector9 NavState::correctPIM(const Vector9& pim, double dt,
     OptionalJacobian<9, 9> H2) const {
   const Rot3& nRb = R_;
   const Velocity3& n_v = v_; // derivative is Ri !
+  const Point3& n_t = t_; // derivative is Ri !
   const double dt22 = 0.5 * dt * dt;
 
   Vector9 xi;
-  Matrix3 D_dP_Ri1, D_dP_Ri2, D_dP_nv, D_dV_Ri;
-  dR(xi) = dR(pim);
-  dP(xi) = dP(pim)
-      + dt * nRb.unrotate(n_v, H1 ? &D_dP_Ri1 : 0, H2 ? &D_dP_nv : 0)
-      + dt22 * nRb.unrotate(n_gravity, H1 ? &D_dP_Ri2 : 0);
-  dV(xi) = dV(pim) + dt * nRb.unrotate(n_gravity, H1 ? &D_dV_Ri : 0);
+  Matrix3 D_dP_Ri, D_dV_Ri, D_dP_Gx, D_dV_Gv;
+  Matrix3 D_Gx_nt = Matrix::Zero(3, 3);
+  Matrix3 D_Gv_nt = Matrix::Zero(3, 3);
+  Matrix3 D_Gx_nv = dt * Matrix::Identity(3, 3);
 
+  Vector3 Gamma_v, Gamma_p;
   if (omegaCoriolis) {
-    xi += coriolis(dt, *omegaCoriolis, use2ndOrderCoriolis, H1);
+    Vector6 omega_n_gravity;
+    omega_n_gravity << -(*omegaCoriolis)*dt, n_gravity*dt;
+    Pose3 pose = Pose3::Expmap(omega_n_gravity);
+    Rot3 Gamma_R = pose.rotation();
+    Matrix3 GOmGt = skewSymmetric(Gamma_R.rotate(*omegaCoriolis));
+    Vector3 n_v_prime = n_v + GOmGt * n_t;
+
+    // add initial state contribution
+    Gamma_v = pose.translation() + GOmGt * n_t;
+    // add velocity and initial position contribution
+    Matrix3 Omega = skewSymmetric(*omegaCoriolis);
+    double phi = (*omegaCoriolis).norm();
+    double c = phi * dt;
+    double phi3 = phi * phi * phi;
+    double phi4 = phi3 * phi;
+    double a = (c * cos(c) - sin(c)) /(phi3);
+    double b = (c*c/2 - cos(c) - c*sin(c) + 1) / (phi4);
+    Matrix3 mat = dt22 * Matrix::Identity(3, 3);
+    mat += a * Omega + b * Omega * Omega;
+    Gamma_p =  dt * n_v_prime + mat * n_gravity;
+
+    D_Gv_nt = GOmGt;
+    D_Gx_nt = dt * GOmGt;
+  } else {
+    Gamma_v = dt * n_gravity;
+    Gamma_p = dt * n_v  + dt22 * n_gravity;
   }
+  dR(xi) = dR(pim);
+  dP(xi) = dP(pim)+nRb.unrotate(Gamma_p, H1 ? &D_dP_Ri : 0, H1 ? &D_dP_Gx : 0);
+  dV(xi) = dV(pim)+nRb.unrotate(Gamma_v, H1 ? &D_dV_Ri : 0, H1 ? &D_dV_Gv : 0);
 
   if (H1 || H2) {
     Matrix3 Ri = nRb.matrix();
 
     if (H1) {
-      if (!omegaCoriolis)
-        H1->setZero(); // if coriolis H1 is already initialized
-      D_t_R(H1) += dt * D_dP_Ri1 + dt22 * D_dP_Ri2;
-      D_t_v(H1) += dt * D_dP_nv * Ri;
-      D_v_R(H1) += dt * D_dV_Ri;
+      H1->setZero(); // if coriolis H1 is already initialized
+      D_t_R(H1) += D_dP_Ri;
+      D_t_v(H1) += D_dP_Gx * D_Gx_nv * Ri;
+      D_v_R(H1) += D_dV_Ri;
+      D_t_t(H1) += D_dP_Gx * D_Gx_nt * Ri;
+      D_v_t(H1) += D_dV_Gv * D_Gv_nt * Ri;
     }
     if (H2) {
       H2->setIdentity();
