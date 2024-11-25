@@ -24,6 +24,7 @@
 
 /* GTSAM includes */
 #include <gtsam/navigation/ManifoldPreintegration.h>
+#include <gtsam/navigation/LieGroupPreintegration.h>
 #include <gtsam/navigation/TangentPreintegration.h>
 #include <gtsam/nonlinear/NonlinearFactor.h>
 #include <gtsam/base/Matrix.h>
@@ -34,7 +35,11 @@ namespace gtsam {
 #ifdef GTSAM_TANGENT_PREINTEGRATION
 typedef TangentPreintegration PreintegrationType;
 #else
+#ifdef GTSAM_LIEGROUP_PREINTEGRATION
+typedef LieGroupPreintegration PreintegrationType;
+#else
 typedef ManifoldPreintegration PreintegrationType;
+#endif
 #endif
 
 /*
@@ -94,11 +99,11 @@ struct GTSAM_EXPORT PreintegrationCombinedParams : PreintegrationParams {
   void setBiasAccCovariance(const Matrix3& cov) { biasAccCovariance=cov; }
   void setBiasOmegaCovariance(const Matrix3& cov) { biasOmegaCovariance=cov; }
   void setBiasAccOmegaInit(const Matrix6& cov) { biasAccOmegaInt=cov; }
-  
+
   const Matrix3& getBiasAccCovariance() const { return biasAccCovariance; }
   const Matrix3& getBiasOmegaCovariance() const { return biasOmegaCovariance; }
   const Matrix6& getBiasAccOmegaInit() const { return biasAccOmegaInt; }
-  
+
 private:
 
   /** Serialization function */
