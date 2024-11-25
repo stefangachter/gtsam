@@ -24,13 +24,18 @@
 
 /* GTSAM includes */
 #include <gtsam/navigation/PreintegrationCombinedParams.h>
+#include <gtsam/navigation/LieGroupPreintegration.h>
 
 namespace gtsam {
 
 #ifdef GTSAM_TANGENT_PREINTEGRATION
 typedef TangentPreintegration PreintegrationType;
 #else
+#ifdef GTSAM_LIEGROUP_PREINTEGRATION
+typedef LieGroupPreintegration PreintegrationType;
+#else
 typedef ManifoldPreintegration PreintegrationType;
+#endif
 #endif
 
 /*
@@ -53,6 +58,8 @@ typedef ManifoldPreintegration PreintegrationType;
  *     Robotics: Science and Systems (RSS), 2015.
  */
 
+  
+  
 /**
  * PreintegratedCombinedMeasurements integrates the IMU measurements
  * (rotation rates and accelerations) and the corresponding covariance matrix.

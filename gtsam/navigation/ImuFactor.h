@@ -24,6 +24,7 @@
 /* GTSAM includes */
 #include <gtsam/nonlinear/NonlinearFactor.h>
 #include <gtsam/navigation/ManifoldPreintegration.h>
+#include <gtsam/navigation/LieGroupPreintegration.h>
 #include <gtsam/navigation/TangentPreintegration.h>
 #include <gtsam/base/debug.h>
 
@@ -32,7 +33,11 @@ namespace gtsam {
 #ifdef GTSAM_TANGENT_PREINTEGRATION
 typedef TangentPreintegration PreintegrationType;
 #else
+#ifdef GTSAM_LIEGROUP_PREINTEGRATION
+typedef LieGroupPreintegration PreintegrationType;
+#else
 typedef ManifoldPreintegration PreintegrationType;
+#endif
 #endif
 
 /*
