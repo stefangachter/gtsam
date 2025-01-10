@@ -91,7 +91,7 @@ class GTSAM_EXPORT PreintegratedCombinedMeasurements
   /// @{
 
   /// Default constructor only for serialization and wrappers
-  PreintegratedCombinedMeasurements() { preintMeasCov_.setZero(); }
+  PreintegratedCombinedMeasurements() { resetIntegration(); }
 
   /**
    *  Default constructor, initializes the class with no measurements
@@ -104,7 +104,9 @@ class GTSAM_EXPORT PreintegratedCombinedMeasurements
       const imuBias::ConstantBias& biasHat = imuBias::ConstantBias(),
       const Eigen::Matrix<double, 15, 15>& preintMeasCov =
           Eigen::Matrix<double, 15, 15>::Zero())
-      : PreintegrationType(p, biasHat), preintMeasCov_(preintMeasCov) {}
+      : PreintegrationType(p, biasHat), preintMeasCov_(preintMeasCov) {
+    PreintegrationType::resetIntegration();
+  }
 
   /**
    *  Construct preintegrated directly from members: base class and
@@ -115,7 +117,9 @@ class GTSAM_EXPORT PreintegratedCombinedMeasurements
   PreintegratedCombinedMeasurements(
       const PreintegrationType& base,
       const Eigen::Matrix<double, 15, 15>& preintMeasCov)
-      : PreintegrationType(base), preintMeasCov_(preintMeasCov) {}
+      : PreintegrationType(base), preintMeasCov_(preintMeasCov) {
+    PreintegrationType::resetIntegration();
+  }
 
   /// Virtual destructor
   ~PreintegratedCombinedMeasurements() override {}
@@ -176,7 +180,7 @@ class GTSAM_EXPORT PreintegratedCombinedMeasurements
   /// @}
 
  private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION  ///
+#if GTSAM_ENABLE_BOOST_SERIALIZATION  ///
   /// Serialization function
   friend class boost::serialization::access;
   template <class ARCHIVE>
@@ -288,7 +292,7 @@ class GTSAM_EXPORT CombinedImuFactor
                        OptionalMatrixType H6) const override;
 
  private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
   /** Serialization function */
   friend class boost::serialization::access;
   template <class ARCHIVE>

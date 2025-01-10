@@ -20,6 +20,7 @@
 
 #include <gtsam/base/Testable.h>
 #include <gtsam/discrete/DiscreteFactor.h>
+#include <gtsam/discrete/TableDistribution.h>
 #include <gtsam/hybrid/HybridBayesNet.h>
 #include <gtsam/hybrid/HybridBayesTree.h>
 #include <gtsam/hybrid/HybridConditional.h>
@@ -33,6 +34,7 @@
 #include <CppUnitLite/TestHarness.h>
 
 #include <memory>
+#include <numeric>
 
 using namespace std;
 using namespace gtsam;
@@ -454,7 +456,8 @@ TEST(HybridBayesNet, UpdateDiscreteConditionals) {
   }
 
   size_t maxNrLeaves = 3;
-  auto prunedDecisionTree = joint.prune(maxNrLeaves);
+  DiscreteConditional prunedDecisionTree(joint);
+  prunedDecisionTree.prune(maxNrLeaves);
 
 #ifdef GTSAM_DT_MERGING
   EXPECT_LONGS_EQUAL(maxNrLeaves + 2 /*2 zero leaves*/,
@@ -550,19 +553,23 @@ TEST(HybridBayesNet, Sampling) {
   EXPECT_LONGS_EQUAL(2, average_continuous.size());
   EXPECT_LONGS_EQUAL(num_samples, discrete_samples.size());
 
-  // Regressions don't work across platforms :-(
-  // // regression for specific RNG seed
-  // double discrete_sum =
-  //     std::accumulate(discrete_samples.begin(), discrete_samples.end(),
-  //                     decltype(discrete_samples)::value_type(0));
-  // EXPECT_DOUBLES_EQUAL(0.477, discrete_sum / num_samples, 1e-9);
+  // regression for specific RNG seed
+  double discrete_sum =
+      std::accumulate(discrete_samples.begin(), discrete_samples.end(),
+                      decltype(discrete_samples)::value_type(0));
+  EXPECT_DOUBLES_EQUAL(0.477, discrete_sum / num_samples, 1e-9);
 
-  // VectorValues expected;
-  // expected.insert({X(0), Vector1(-0.0131207162712)});
-  // expected.insert({X(1), Vector1(-0.499026377568)});
-  // // regression for specific RNG seed
-  // EXPECT(assert_equal(expected, average_continuous.scale(1.0 /
-  // num_samples)));
+  VectorValues expected;
+  // regression for specific RNG seed
+#if __APPLE__ || _WIN32
+  expected.insert({X(0), Vector1(-0.0131207162712)});
+  expected.insert({X(1), Vector1(-0.499026377568)});
+#elif __linux__
+  expected.insert({X(0), Vector1(-0.00799425182219)});
+  expected.insert({X(1), Vector1(-0.526463854268)});
+#endif
+
+  EXPECT(assert_equal(expected, average_continuous.scale(1.0 / num_samples)));
 }
 
 /* ****************************************************************************/

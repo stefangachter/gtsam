@@ -92,6 +92,7 @@ print_enabled_config(${GTSAM_ROT3_EXPMAP}                 "Rot3 retract is full 
 print_enabled_config(${GTSAM_POSE3_EXPMAP}                "Pose3 retract is full ExpMap    ")
 print_enabled_config(${GTSAM_EXTENDED_POSE_RETRACT}       "NavState uses ExtendedPose3 retract")
 print_enabled_config(${GTSAM_DT_MERGING}                  "Enable branch merging in DecisionTree")
+print_enabled_config(${GTSAM_ENABLE_TIMING}               "Enable timing machinery")
 print_enabled_config(${GTSAM_ALLOW_DEPRECATED_SINCE_V43}  "Allow features deprecated in GTSAM 4.3")
 print_enabled_config(${GTSAM_SUPPORT_NESTED_DISSECTION}   "Metis-based Nested Dissection   ")
 print_enabled_config(${GTSAM_TANGENT_PREINTEGRATION}      "Use tangent-space preintegration")
