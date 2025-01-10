@@ -141,7 +141,9 @@ NavState PreintegrationBase::predict(const NavState& state_i,
 
   // Use retract to get back to NavState manifold
   Matrix9 D_predict_state, D_predict_delta;
-  NavState state_j = state_ii.retract(xi, D_predict_state, D_predict_delta);
+  NavState state_j = state_i.retract(xi,
+                                     H1 ? &D_predict_state : nullptr,
+                                     H1 || H2 ? &D_predict_delta : nullptr);
 
   Matrix99 H = Matrix99::Identity(9, 9);
   if (p().omegaCoriolis){
@@ -150,7 +152,6 @@ NavState PreintegrationBase::predict(const NavState& state_i,
     const Matrix3 Omega = skewSymmetric(*(p().omegaCoriolis));
     state_j = NavState(nRb, state_j.position(),
                       state_j.velocity() - Omega * state_j.position());
-                                     H2 || H2 ? &D_predict_delta : nullptr);
   }
   if (H1)
     *H1 = H * (D_predict_state + D_predict_delta * D_delta_state);

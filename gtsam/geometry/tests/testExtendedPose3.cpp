@@ -18,9 +18,6 @@
 #include <gtsam/base/testLie.h>
 #include <gtsam/base/lieProxies.h>
 
-#include <boost/assign/std/vector.hpp> // for operator +=
-using namespace boost::assign;
-
 #include <CppUnitLite/TestHarness.h>
 #include <cmath>
 
@@ -38,7 +35,6 @@ static const Point3 P2(3.5,-8.2,4.2);
 static const ExtendedPose3 T(R,V2,P2);
 static const ExtendedPose3 T2(Rot3::Rodrigues(0.3,0.2,0.1),V2,P2);
 static const ExtendedPose3 T3(Rot3::Rodrigues(-90, 0, 0), Point3(5,6,7), Point3(1, 2, 3));
-static const double tol=1e-5;
 
 /* ************************************************************************* */
 TEST( ExtendedPose3, equals)
@@ -193,7 +189,7 @@ TEST(ExtendedPose3, position) {
   Matrix actualH;
   EXPECT(assert_equal(Point3(3.5, -8.2, 4.2), T.position(actualH), 1e-8));
   Matrix numericalH = numericalDerivative11<Point3, ExtendedPose3>(
-      boost::bind(&ExtendedPose3::position, _1, boost::none), T);
+      std::bind(&ExtendedPose3::position, std::placeholders::_1, nullptr), T);
   EXPECT(assert_equal(numericalH, actualH, 1e-6));
 }
 
@@ -204,7 +200,7 @@ TEST(ExtendedPose3, rotation) {
   EXPECT(assert_equal(R, T.rotation(actualH), 1e-8));
 
   Matrix numericalH = numericalDerivative11<Rot3, ExtendedPose3>(
-      boost::bind(&ExtendedPose3::rotation, _1, boost::none), T);
+      std::bind(&ExtendedPose3::rotation, std::placeholders::_1, nullptr), T);
   EXPECT(assert_equal(numericalH, actualH, 1e-6));
 }
 
@@ -214,7 +210,7 @@ TEST(ExtendedPose3, velocity) {
   Matrix actualH;
   EXPECT(assert_equal(Point3(-6.5,3.5,6.2), T.velocity(actualH), 1e-8));
   Matrix numericalH = numericalDerivative11<Point3, ExtendedPose3>(
-      boost::bind(&ExtendedPose3::velocity, _1, boost::none), T);
+      std::bind(&ExtendedPose3::velocity, std::placeholders::_1, nullptr), T);
   EXPECT(assert_equal(numericalH, actualH, 1e-6));
 }
 
@@ -411,7 +407,7 @@ TEST( ExtendedPose3, ExpmapDerivative1) {
   Vector9 w; w << 0.1, 0.2, 0.3, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0;
   ExtendedPose3::Expmap(w,actualH);
   Matrix expectedH = numericalDerivative21<ExtendedPose3, Vector9,
-      OptionalJacobian<9, 9> >(&ExtendedPose3::Expmap, w, boost::none);
+      OptionalJacobian<9, 9> >(&ExtendedPose3::Expmap, w, nullptr);
   EXPECT(assert_equal(expectedH, actualH));
 }
 
@@ -422,7 +418,7 @@ TEST( ExtendedPose3, LogmapDerivative) {
   ExtendedPose3 p = ExtendedPose3::Expmap(w);
   EXPECT(assert_equal(w, ExtendedPose3::Logmap(p,actualH), 1e-5));
   Matrix expectedH = numericalDerivative21<Vector9, ExtendedPose3,
-      OptionalJacobian<9, 9> >(&ExtendedPose3::Logmap, p, boost::none);
+      OptionalJacobian<9, 9> >(&ExtendedPose3::Logmap, p, nullptr);
   EXPECT(assert_equal(expectedH, actualH));
 }
 
@@ -484,7 +480,9 @@ TEST(ExtendedPose3, Create) {
   Matrix93 actualH1, actualH2, actualH3;
   ExtendedPose3 actual = ExtendedPose3::Create(R, V2, P2, actualH1, actualH2, actualH3);
   EXPECT(assert_equal(T, actual));
-  boost::function<ExtendedPose3(Rot3,Point3,Point3)> create = boost::bind(ExtendedPose3::Create,_1,_2,_3,boost::none,boost::none,boost::none);
+  std::function<ExtendedPose3(Rot3, Point3, Point3)> create = std::bind(
+      ExtendedPose3::Create, std::placeholders::_1, std::placeholders::_2,
+      std::placeholders::_3, nullptr, nullptr, nullptr);
   EXPECT(assert_equal(numericalDerivative31<ExtendedPose3,Rot3,Point3,Point3>(create, R, V2, P2), actualH1, 1e-9));
   EXPECT(assert_equal(numericalDerivative32<ExtendedPose3,Rot3,Point3,Point3>(create, R, V2, P2), actualH2, 1e-9));
   EXPECT(assert_equal(numericalDerivative33<ExtendedPose3,Rot3,Point3,Point3>(create, R, V2, P2), actualH3, 1e-9));
@@ -498,7 +496,7 @@ TEST(ExtendedPose3, print) {
   // redirect cout to redirectStream
   std::cout.rdbuf(ssbuf);
 
-  ExtendedPose3 pose(Rot3::identity(), Vector3(1, 2, 3), Point3(1, 2, 3));
+  ExtendedPose3 pose(Rot3(), Vector3(1, 2, 3), Point3(1, 2, 3));
   // output is captured to redirectStream
   pose.print();
 
@@ -520,7 +518,7 @@ TEST(ExtendedPose3, print) {
 
   // Get substring corresponding to position part
   std::string actual = redirectStream.str().substr(38);
-  CHECK_EQUAL(expected.str(), actual);
+  CHECK(expected.str() == actual);
 }
 
 /* ************************************************************************* */

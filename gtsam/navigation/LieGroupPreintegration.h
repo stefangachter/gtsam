@@ -59,7 +59,7 @@ public:
    *  @param p    Parameters, typically fixed in a single application
    *  @param bias Current estimate of acceleration and rotation rate biases
    */
-  LieGroupPreintegration(const boost::shared_ptr<Params>& p,
+  LieGroupPreintegration(const std::shared_ptr<Params>& p,
       const imuBias::ConstantBias& biasHat = imuBias::ConstantBias());
 
   /// @}
@@ -107,17 +107,18 @@ public:
   /// Given the estimate of the bias, return a NavState tangent vector
   /// summarizing the preintegrated IMU measurements so far
   Vector9 biasCorrectedDelta(const imuBias::ConstantBias& bias_i,
-      OptionalJacobian<9, 6> H = boost::none) const override;
+      OptionalJacobian<9, 6> H = {}) const override;
 
   /** Dummy clone for MATLAB */
-  virtual boost::shared_ptr<LieGroupPreintegration> clone() const {
-    return boost::shared_ptr<LieGroupPreintegration>();
+  virtual std::shared_ptr<LieGroupPreintegration> clone() const {
+    return std::shared_ptr<LieGroupPreintegration>();
   }
 
   /// @}
 
 private:
   /** Serialization function */
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
   friend class boost::serialization::access;
   template<class ARCHIVE>
   void serialize(ARCHIVE & ar, const unsigned int /*version*/) {
@@ -130,6 +131,7 @@ private:
     ar & BOOST_SERIALIZATION_NVP(delVdelBiasAcc_);
     ar & BOOST_SERIALIZATION_NVP(delVdelBiasOmega_);
   }
+#endif
 };
 
 } /// namespace gtsam
